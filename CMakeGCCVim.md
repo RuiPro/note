@@ -222,24 +222,58 @@ add_executable(app ${SRC_FILES})
 
 
 
-### 设置输出目录
-
-```
-set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/../bin)
-```
-
-`${PROJECT_SOURCE_DIR}`变量保存了当前项目的根目录，也就是此CMakeLists.txt所在的目录。
-
-
-
 #### 添加子项目
 
-有时我们会将一个大项目拆分成几个小项目来编写。比如我们需要构建一个客户端和服务端，或者是一个可执行文件和多个库文件。这些小项目的源代码往往都不一样而且不能混淆。我们可以在CMake中配置小项目来实现。通过在大项目中使用`add_subdirectory(子项目的文件夹 子项目的输出目录 EXCLUDE_FROM_ALL可选参数)`命令，我们可以在CMake中配置子项目。
+有时我们会将一个大项目拆分成几个小项目来编写。比如我们需要构建一个客户端和服务端，或者是一个可执行文件和多个库文件。这些小项目的源代码往往都不一样而且不能混淆。我们可以在CMake中配置小项目来实现。通过在大项目中使用add_subdirectory(子项目的文件夹 子项目的输出目录 EXCLUDE_FROM_ALL可选参数)命令，我们可以在CMake中配置子项目。
 
-`add_subdirectory(子项目的文件夹 子项目的输出目录)`中
+add_subdirectory(子项目的文件夹 子项目的输出目录)中
 
 - 子项目的文件夹是指在执行此CMake配置时，连带执行子项目的文件夹中的CMake配置文件。**子项目仍需要一个独立的配置文件**。
 - 子项目的输出目录是一个可选参数，用于配置编译子项目时产生的临时文件和目标文件存放的位置
+
+
+
+#### 有用的宏
+
+|      | `变量`                                                       | `解释`                                                       |
+| :--: | :----------------------------------------------------------- | :----------------------------------------------------------- |
+|  1   | `CMAKE_RUNTIME_OUTPUT_DIRECTORY` `CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG`  `CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE` | **可执行文件**的总/debug/release的输出路径，在未指定构建模式时，会使用总输出路径，下同 |
+|  2   | `CMAKE_ARCHIVE_OUTPUT_DIRECTORY` `CMAKE_ARCHIVE_OUTPUT_DIRECTORY_DEBUG` `CMAKE_ARCHIVE_OUTPUT_DIRECTORY_RELEASE` | **静态库**的总/debug/release的输出路径                       |
+|  3   | `CMAKE_LIBRARY_OUTPUT_DIRECTORY` `CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG` `CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE` | **动态库**的总/debug/release的输出路径                       |
+|  4   | `【旧的 应弃用】EXECUTABLE_OUTPUT_PATH`                      | 可执行文件的输出位置，新版应使用1，如果新版变量和旧版变量同时指定了值，则新版变量优先使用，下同 |
+|  5   | `【旧的 应弃用】LIBRARY_OUTPUT_PATH`                         | 库文件的输出位置，新版应使用3                                |
+|  6   | `CMAKE_SOURCE_DIR`                                           | 顶层`CMakeLists.txt` 文件所在的文件夹，如果此`CMakeLists.txt` 包含子项目，则在子项目中此宏的值都相同 |
+|  7   | `CMAKE_CURRENT_SOURCE_DIR`                                   | 当前`CMakeLists.txt` 文件所在的文件夹。如果当前的`CMakeLists.txt` 就是顶层时，此宏的值和6相同；如果当前的`CMakeLists.txt` 是子项目，则为此子项目的文件夹 |
+|  8   | `PROJECT_SOURCE_DIR`                                         | 最近一次使用过`project()`的`CMakeLists.txt`所在的文件夹。大部分情况下和7一样 |
+|  9   | `CMAKE_DEBUG_POSTFIX` `CMAKE_RELEASE_POSTFIX`                | 设置debug和release版本库文件的后缀名                         |
+|  10  | `set_target_properties(${TARGET_NAME} PROPERTIES DEBUG_POSTFIX "_d")` <br> `set_target_properties(${TARGET_NAME} PROPERTIES RELEASE_POSTFIX "_r")` | 分别设置了Debug版本和Release版本下可执行文件的后缀名         |
+|  11  | `CMAKE_BUILD_TYPE`                                           | 指定编译器的构建模式。可以选：`Debug`调试模式、`Release`发布模式、`MinSizeRel`最小体积发布、`RelWithDebInfo`带调试信息发布。 |
+
+
+
+```
+# 设置不同构建模式下的文件输出目录，请注意，这些语句必须在add_executable()之前设置才能生效
+# 可执行文件
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/output/app)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_SOURCE_DIR}/output/debug/app)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_SOURCE_DIR}/output/release/app)
+# 动态库文件
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/output/lib)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG ${CMAKE_SOURCE_DIR}/output/debug/lib)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE ${CMAKE_SOURCE_DIR}/output/release/lib)
+# 静态库文件
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/output/lib)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_DEBUG ${CMAKE_SOURCE_DIR}/output/debug/lib)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_RELEASE ${CMAKE_SOURCE_DIR}/output/release/lib)
+```
+
+```
+# 设置同时生成静态库和动态库，如果不这样做会提示重名
+add_library(mylib_static STATIC ${SOURCES})
+add_library(mylib_shared SHARED ${SOURCES})
+set_target_properties(mylib_static PROPERTIES OUTPUT_NAME mylib)
+set_target_properties(mylib_shared PROPERTIES OUTPUT_NAME mylib)
+```
 
 
 
@@ -290,7 +324,7 @@ yum remove cmake
 yum install -y libxml2 libxml2-devel bzip2 bzip2-devel libcurl libcurl-devel libjpeg libjpeg-devel zstd libzstd-devel curl libcurl-devel libpng libpng-devel
 ```
 
- 
+
 
 ## 三、下载CMake3.23.0 源代码
 
@@ -299,7 +333,7 @@ yum install -y libxml2 libxml2-devel bzip2 bzip2-devel libcurl libcurl-devel lib
 wget https://github.com/Kitware/CMake/releases/download/v3.23.0/cmake-3.23.0.tar.gz
 ```
 
- 
+
 
 ## 四、编译CMake
 
@@ -316,7 +350,7 @@ gmake -j2
 gmake install
 ```
 
- 
+
 
 ## 五、配置环境
 
