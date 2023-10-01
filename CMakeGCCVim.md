@@ -427,3 +427,35 @@ mv /usr/bin/gcc /usr/bin/gcc-4.8.5 && ln -s /opt/rh/devtoolset-11/root/bin/gcc /
 8. 检查GCC版本：gcc --version
 ```
 
+
+
+# 生成的可执行文件使用自定义的库
+
+一般我们会将可执行文件和动态库放在一起或放在环境变量下。
+
+但这样很乱。
+
+你可以使用GCC的`-rpath`选项来让可执行文件使用指定目录下的库
+
+固定格式：`-Wl`是必须的
+
+```
+-Wl,-rpath-link 库的相对或绝对路径
+```
+
+如果你想把库文件都放在可执行文件的路径的lib文件夹下：
+
+```
+-Wl,-rpath-link '$ORIGIN/lib'		// $ORIGIN在linux中是程序所在的路径
+```
+
+CMake可以这样写
+
+```
+set_target_properties(构建目标名称 PROPERTIES
+    BUILD_WITH_INSTALL_RPATH TRUE
+    INSTALL_RPATH "\$ORIGIN/libs"
+)
+```
+
+`$ORIGIN`的`$`需要转义，且整个值需要使用双引号括起来
