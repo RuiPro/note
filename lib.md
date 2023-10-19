@@ -240,3 +240,48 @@ int main() {
 }
 ```
 
+`event_base_loop()`：开启监听事件循环，可以设置标志位
+
+`event_base_dispatch()`函数是`event_base_loop()`函数的一个包装器，它等同于调用`event_base_loop(base, 0)`
+
+**多线程操作**
+
+如果你要对一个`event_base`进行多线程操作，请在创建`event_base`之前调用`evthread_use_pthreads();`
+
+
+
+## libevent定时器
+
+libevent为我们封装了IO事件、定时器事件、信号事件。接下来介绍定时器事件。
+
+```
+// 创建事件树
+event_base* base = event_base_new();
+
+// 创建定时器事件。你可以创建多个定时器事件，也可以在event_base_dispatch()调用之后添加事件
+// 不过要注意回多个事件中如果有一个调函数如果是阻塞的，可能会导致后面的定时超时，你需要在回调函数中使用多线程
+event* timer = evtimer_new(m_ev_main_base, TickEventCB, this);
+
+// 为定时器事件设置时间
+// 请注意，定时器在设置时间之后才能被检测，如果没有对其的时间进行设置，这个定时器将永远不会被触发
+timeval tv;
+evutil_timerclear(&tv);
+tv.tv_sec = 5;
+
+// 把定时器事件挂到事件树上。
+evtimer_add(m_ev_timer, &tv);
+
+// 开始事件循环
+event_base_dispatch(m_ev_main_base);
+
+// 把事件从事件树上取下，不再检测该事件，但也不会释放该事件的资源
+event_del(m_ev_timer);
+// 把事件从事件树上取下并释放该事件的资源
+event_free(m_ev_timer);
+```
+
+一旦定时器事件被触发，他将自动地从事件树上被取下
+
+如果你要修改某个定时器的时间，你需要先从事件树上取下该事件，修改后再挂到事件树上。
+
+`event_del()`和`event_free()`无需传入`event_base`，因为每个事件在创建时已经绑定了自己属于哪个`event_base`
