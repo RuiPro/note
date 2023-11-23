@@ -267,3 +267,43 @@ public:
 };
 ```
 
+
+
+# C++定义多维数组
+
+一维数组可以使用
+
+```
+int* arr = new int[n];
+```
+
+其中n可以动态指定。
+
+二维数组的定义方式：
+
+```
+int (*table)[n] = new int[m][n];
+```
+
+但m和n必须使用常量指定，确保**在编译阶段就能确定值**。
+
+```
+int main() {
+    const int m = 6;
+    const int n = 5;
+    int (*table)[n] = new int[m][n];
+    delete[] tabel;
+}
+```
+
+但这种是不允许的，
+
+```
+int main() {
+    int m = 6;
+    int n = 5;
+    int (*table)[n] = new int[m][n];
+}
+```
+
+如果你需要，你可以先定义一个一维指针数组作为行，然后在定义很多一维数组作为列。但是这样你需要使用循环，且析构时也需要使用循环。
