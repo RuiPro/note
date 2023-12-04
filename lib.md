@@ -8,7 +8,7 @@ libcurl是一个跨平台的轻量级的网络请求库，它是由C语言构建
 
 ## 准备你的libcurl
 
-1. 首先，你需要把curl的仓库克隆下来。
+1. 首先，你需要把curl的仓库克隆下来。仓库一般都是最新的DEV开发版，你也可以选择release
 
    ```
    git clone github.com/curl/curl.git
@@ -16,13 +16,33 @@ libcurl是一个跨平台的轻量级的网络请求库，它是由C语言构建
 
    或者你可以直接下载zip文件再解压。
 
-2. 开始编译库文件。
+2. 准备openssl
+
+   到openssl的官方仓库克隆仓库
+
+   ```
+   git clone git://git.openssl.org/openssl.git
+   git clone https://github.com/openssl/openssl.git
+   ```
+
+   然后
+
+   ```
+   ./Configure --prefix=/usr/local/ssl --openssldir=/usr/local/ssl
+   make
+   make install
+   ```
+
+   
+
+3. 开始编译库文件。
 
    windows直接使用projects目录下的sln文件在visual studio下编译即可。Linux需要执行以下命令
 
    ```
+   autoreconf -fi
    ./configure --prefix=目标目录 --可选参数
-   ./configure --with-ssl=/usr/bin/openssl --with-libssl-prefix=/usr/lib/x86_64-linux-gnu/
+   ./configure --with-ssl=/usr/local/ssl --with-libssl-prefix=/usr/local/ssl/lib64
    make
    make install
    ```
@@ -37,7 +57,7 @@ libcurl是一个跨平台的轻量级的网络请求库，它是由C语言构建
 
    
 
-3. 在你的项目中添加库文件和头文件
+4. 在你的项目中添加库文件和头文件
 
    比如Cmake就可以使用
 
@@ -66,7 +86,7 @@ libcurl是一个跨平台的轻量级的网络请求库，它是由C语言构建
 
    根据curl开发团队的文档，你只需要包含curl/curl.h这一个头文件就包含了所有curl的api
 
-4. 开始享用curl吧！
+5. 开始享用curl吧！
 
 
 
@@ -142,9 +162,80 @@ int main() {
 
 ### 配置curl句柄
 
-[所有选项 - 所有卷曲 (curl.dev)](https://everything.curl.dev/libcurl/options/all)
+https://curl.se/libcurl/c/curl_easy_setopt.html
+
+https://everything.curl.dev/libcurl/options/all
 
 https://blog.csdn.net/yupu56/article/details/43566085
+
+#### curl的四个回调函数
+
+- `CURLOPT_WRITEFUNCTION`：此回调函数用于接收响应数据。
+
+  ```
+  size_t function(char* buffer, size_t size, size_t nmemb, void* user_data)
+  ```
+  
+  当libcurl从服务器接收到数据时，就会调用这个回调函数。你可以在这个函数里面将接收到的数据进行处理和保存。
+  
+  - buffer：接受到的数据数组的头节点
+  - size：每个数据块的大小，单位字节，一般为1
+  - nmemb：有多少个数据块
+  - user_data：用户指定的参数
+  - 返回值：接收了多少数据，一般为`size * nmemb`。如果不等说明发生了错误导致传输中断
+  
+- `CURLOPT_HEADERFUNCTION`：此回调函数用于处理响应报头。
+
+  ```
+  size_t function(char* buffer, size_t size, size_t nmemb, void* user_data)
+  ```
+
+  当libcurl接收到报头数据时，就会调用这个回调函数。请注意，这个函数会接收整个HTTP报头，也就是请求头(HTTP/1.1 200 OK)和所有请求行(Key: Value)。
+
+  - buffer：接受到的数据数组的头节点
+  - size：每个数据块的大小，单位字节，一般为1
+  - nmemb：有多少个数据块
+  - user_data：用户指定的参数
+  - 返回值：接收了多少数据，一般为`size * nmemb`。如果不等说明发生了错误导致传输中断
+
+- `CURLOPT_READFUNCTION`：此回调函数用于发送请求数据。
+
+  ```
+  size_t function(char* ptr, size_t size, size_t nitems, void* user_data)
+  ```
+
+  当libcurl需要发送数据时，就会调用这个回调函数。这个函数需要你实现：1. 将你需要发送的数据写入到buffer中；2. 返回数据量。
+
+  - ptr：一块缓冲区，需要你尽可能多地将数据写入，但不能超过`size * nmemb`
+  - size：每个数据块的大小，单位字节，一般为1
+  - nmemb：最多可以写入多少个数据块
+  - user_data：用户指定的参数
+  - 返回值：你写入了多少数据。如果返回0，表示你已经写完了，curl会停止传输
+
+- `CURLOPT_PROGRESSFUNCTION`：此回调函数用于报告操作进度。
+
+  ```
+  int function(void* clientp, double dltotal, double dlnow, double ultotal, double ulnow)
+  ```
+
+  当libcurl进行数据传输时，就会定期调用这个回调函数。你可以在这个函数中更新进度信息。返回值应该是0，如果返回非0值，libcurl会认为发生了错误，并终止请求。**这个选项是过时的，7.32.0以后的版本推荐使用下面的CURLOPT_XFERINFOFUNCTION，和这个语法一样**
+
+- `CURLOPT_XFERINFOFUNCTION`：此回调函数用于报告操作进度。
+
+  ```
+  int function(void* clientp, double dltotal, double dlnow, double ultotal, double ulnow)
+  ```
+
+  - clientp：用户指定的参数
+  - dltotal：总下载大小
+  - dlnow：已经下载了多少
+  - ultotal：总上传大小
+  - ulnow：现在上传了多少
+  - 返回值：返回0代表继续传输，返回非0代表终止传输
+
+
+
+
 
 ### 开始传输数据
 

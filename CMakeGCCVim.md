@@ -279,20 +279,26 @@ set_target_properties(mylib_shared PROPERTIES OUTPUT_NAME mylib)
 
 ## 启动CMake
 
-在编写完CMakeLists.txt之后，就可以对项目进行编译操作了。
+### CMake工作流程
 
-在终端中输入cmake命令即可。cmake命令需要一系列参数才能执行。
+在编写完成CMakeLists.txt之后，我们可以使用CMake进行构建。但CMake本身不是一个编译器，因此它需要委托编译器去帮我们构建。因此，CMake构建项目的步骤有三步：
 
-- -S参数：指定CMakeLists.txt所在的路径
+1. 编写CMakeLists.txt
+2. 使用CMake将CMakeLists.txt生成makefile或sln文件，这些文件是编译器依赖的，这样编译器可以使用这些项目文件进行构建
+3. 进行编译构建。
 
-  此参数虽然意思是source file，但它并不用于用于指定源文件目录，而是用于指定CMakeLists.txt所在的目录。只有指定了CMakeLists.txt在哪，cmake才能开始构建。此参数必须存在。
+### 生成编译依赖文件
+
+在终端中输入cmake命令即可。不过他有两个重要命令需要我们指定
+
+- -S参数：指定源代码所在的路径，一般是CMakeLists.txt的路。只有指定了CMakeLists.txt在哪，cmake才能开始构建。此参数如果不指定，则默认使用当前目录
 
   ```
   # 让cmake使用当前目录下上一级目录下的src目录里的CMakeLists.txt配置来构建项目
   cmake -S ../src
   ```
-
-- -B参数：指定临时文件和目标文件存放的路径
+  
+- -B参数：指定生成的编译依赖文件存放的路径
 
   此参数用于指定cmake在构建过程中产生的临时文件和目标文件存放的路径。如果此路径不存在，cmake会创建。
 
@@ -303,7 +309,37 @@ set_target_properties(mylib_shared PROPERTIES OUTPUT_NAME mylib)
   cmake -S ../src	-B ../build
   ```
 
-  
+
+这一步你还可以指定一些编译选项
+
+比如指定debug或release版本可以附加这个参数
+
+```
+-D CMAKE_BUILD_TYPE=Release
+-D CMAKE_BUILD_TYPE=Debug
+```
+
+指定生成器
+
+常用的生成器有makefile、ninja、visual studio
+
+你可以使用`cmake -G`来查看可支持的生成器，以及cmake选择的默认生成器(带*号标识)，也可以使用它来指定一个支持的生成器(需要已安装)
+
+```
+cmake -G Ninja
+```
+
+
+
+### 进行编译构建
+
+```
+cmake --build
+```
+
+
+
+
 
 
 
