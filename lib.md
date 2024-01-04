@@ -1,3 +1,9 @@
+```
+
+```
+
+
+
 # libcurl
 
 本章节记录libcurl的使用。
@@ -28,36 +34,60 @@ libcurl是一个跨平台的轻量级的网络请求库，它是由C语言构建
    然后
 
    ```
-   ./Configure --prefix=/usr/local/ssl --openssldir=/usr/local/ssl
+   ./Configure --prefix=/usr/local/ssl
    make
    make install
    ```
 
-   
+   如果遇到这种报错：
 
-3. 开始编译库文件。
+   ```
+   Can't locate IPC/Cmd.pm in @INC (you may need to install the IPC::Cmd module) (@INC contains: /root/libs/openssl-3.2.0/util/perl /usr/local/lib64/perl5 /usr/local/share/perl5 /usr/lib64/perl5/vendor_perl /usr/share/perl5/vendor_perl /usr/lib64/perl5 /usr/share/perl5 /root/libs/openssl-3.2.0/external/perl/Text-Template-1.56/lib) at /root/libs/openssl-3.2.0/util/perl/OpenSSL/config.pm line 19.
+   BEGIN failed--compilation aborted at /root/libs/openssl-3.2.0/util/perl/OpenSSL/config.pm line 19.
+   Compilation failed in require at ./Configure line 23.
+   BEGIN failed--compilation aborted at ./Configure line 23.
+   ```
+
+   请安装cpan：
+
+   ```
+   yum install cpan
+   ```
+
+   你还需要将编译出的libssl库文件放到环境变量里，或直接链接到环境变量
+
+   ```
+   ln -s /usr/local/ssl/lib64/libcrypto.a /usr/local/lib64/libcrypto.a
+   ln -s /usr/local/ssl/lib64/libcrypto.so.3 /usr/local/lib64/libcrypto.so
+   ln -s /usr/local/ssl/lib64/libcrypto.so.3 /usr/local/lib64/libcrypto.so.3
+   ln -s /usr/local/ssl/lib64/libssl.a /usr/local/lib64/libssl.a
+   ln -s /usr/local/ssl/lib64/libssl.so.3 /usr/local/lib64/libssl.so
+   ln -s /usr/local/ssl/lib64/libssl.so.3 /usr/local/lib64/libssl.so.3
+   ```
+
+
+
+1. 开始编译库文件。
 
    windows直接使用projects目录下的sln文件在visual studio下编译即可。Linux需要执行以下命令
 
    ```
    autoreconf -fi
    ./configure --prefix=目标目录 --可选参数
-   ./configure --with-ssl=/usr/local/ssl --with-libssl-prefix=/usr/local/ssl/lib64
+   ./configure --with-ssl=/usr/local/ssl --with-libssl-prefix=/usr/local/ssl/lib64 --enable-websockets
    make
    make install
    ```
 
    然后在[目标目录]下就出现了库文件和对应的头文件，就可以用于开发了。
 
-   你的libcurl第一次可能不会成功，你需要根据提示，在`./configure`后添加可选参数，比如提示你确实了SSL，那么你需要安装openssl或者忽略SSL。这需要根据你的实际情况来定，忽略SSL意味着不能使用HTTP1.x以外的HTTP协议。但是大多数情况下，HTTP1.x已经够用了。centos安装openssl的命令为:
-
-   ```
-   yum install openssl-devel
-   ```
+   你的libcurl第一次可能不会成功，你需要根据提示，在`./configure`后添加可选参数，比如提示你确实了SSL，那么你需要安装openssl或者忽略SSL。这需要根据你的实际情况来定，忽略SSL意味着不能使用HTTP1.x以外的HTTP协议。
 
    
 
-4. 在你的项目中添加库文件和头文件
+   
+
+2. 在你的项目中添加库文件和头文件
 
    比如Cmake就可以使用
 
@@ -86,7 +116,7 @@ libcurl是一个跨平台的轻量级的网络请求库，它是由C语言构建
 
    根据curl开发团队的文档，你只需要包含curl/curl.h这一个头文件就包含了所有curl的api
 
-5. 开始享用curl吧！
+3. 开始享用curl吧！
 
 
 
@@ -190,7 +220,9 @@ https://blog.csdn.net/yupu56/article/details/43566085
   size_t function(char* buffer, size_t size, size_t nmemb, void* user_data)
   ```
 
-  当libcurl接收到报头数据时，就会调用这个回调函数。请注意，这个函数会接收整个HTTP报头，也就是请求头(HTTP/1.1 200 OK)和所有请求行(Key: Value)。
+  当libcurl接收到任何一行报头数据时，就会调用这个回调函数。
+
+  请注意，这个函数的调用时机是接收到任何一行(以`/r/n`结尾)数据后，直到接收到空行。也就是接收到请求头(HTTP/1.1 200 OK)或者任意请求行(Key: Value)都会调用。
 
   - buffer：接受到的数据数组的头节点
   - size：每个数据块的大小，单位字节，一般为1
